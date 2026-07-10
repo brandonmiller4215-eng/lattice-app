@@ -123,7 +123,21 @@ else:
     st.sidebar.markdown("#### 🛰️ Direct Grassroots Distributions (50%)")
     for group, total_amount in st.session_state.charity_funds.items():
         st.sidebar.write(f" * **{group}:** `${total_amount:.2f}`")
-
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📲 Share the Local Loop")
+with st.sidebar.expander("Generate Network QR Code", expanded=False):
+    # When deployed, replace this with your actual URL (e.g., https://streamlit.app)
+    app_url = "https://streamlit.app"
+    
+    # Safely format the URL string for an API transmission request
+    encoded_url = app_url.replace(":", "%3A").replace("/", "%2F")
+    
+    # Fetch a clean, dynamic QR code image from a secure open-source API grid
+    qr_api_url = f"https://qrserver.com{encoded_url}"
+    
+    st.image(qr_api_url, caption="Scan to join this neighborhood node!", use_container_width=True)
+    st.caption("✨ Tip: Take a screenshot of this QR code to print on local flyers or community board notes!")
+    
 # 5. Interface Action Selector
 view_mode = st.radio(
     "Select System Action:", 
