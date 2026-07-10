@@ -1,5 +1,8 @@
 import streamlit as st
 import pandas as pd
+import base64
+from PIL import Image
+import io
 
 # 1. Page & Layout Optimization
 st.set_page_config(
@@ -8,17 +11,29 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. Flawless State Initialization (Prevents data loss on screen redraws)
+# 2. State Initialization (With Image Placeholder Capability)
 if "local_inventory" not in st.session_state:
     st.session_state.local_inventory = [
-        {"id": 0, "seller": "Oak Street Collective", "item": "Organic Tomatoes", "category": "Food", "qty": 15, "price": 3.50, "zip": "78201"},
-        {"id": 1, "seller": "Elena's Textiles", "item": "Handmade Wool Blanket", "category": "Goods", "qty": 3, "price": 65.00, "zip": "78201"},
-        {"id": 2, "seller": "Community Tool Library", "item": "Rototiller Rental", "category": "Tools", "qty": 1, "price": 10.00, "zip": "78212"},
-        {"id": 3, "seller": "Mendoza Farm", "item": "Free-Range Eggs (Dozen)", "category": "Food", "qty": 12, "price": 5.00, "zip": "78212"},
+        {"id": 0, "seller": "Oak Street Collective", "item": "Organic Tomatoes", "category": "Food", "qty": 15, "price": 3.50, "zip": "78201", "image": None},
+        {"id": 1, "seller": "Elena's Textiles", "item": "Handmade Wool Blanket", "category": "Goods", "qty": 3, "price": 65.00, "zip": "78201", "image": None},
+        {"id": 2, "seller": "Community Tool Library", "item": "Rototiller Rental", "category": "Tools", "qty": 1, "price": 10.00, "zip": "78212", "image": None},
+        {"id": 3, "seller": "Mendoza Farm", "item": "Free-Range Eggs (Dozen)", "category": "Food", "qty": 12, "price": 5.00, "zip": "78212", "image": None},
     ]
 
 if "retained_capital" not in st.session_state:
     st.session_state.retained_capital = 0.0
+
+# Helper function to compress and convert images to Base64 text strings
+def process_uploaded_image(uploaded_file):
+    if uploaded_file is not None:
+        image = Image.open(uploaded_file)
+        # Compress image drastically to save memory on cheap mobile servers
+        image.thumbnail((300, 300)) 
+        buffer = io.BytesIO()
+        image.save(buffer, format="JPEG", quality=70)
+        img_str = base64.b64encode(buffer.getvalue()).decode()
+        return f"data:image/jpeg;base64,{img_str}"
+    return None
 
 # 3. Main Interface Header
 st.title("🕸️ Lattice Core Prototype")
@@ -38,10 +53,8 @@ st.markdown("---")
 if view_mode == "Find Local Needs":
     st.subheader("🔍 Local Network Query")
     
-    # Input coordinates with strict sanitization
     target_zip = st.text_input("Enter Target ZIP Code Location", value="78201", max_chars=5).strip()
     
-    # Extract and filter local data array
     current_items = st.session_state.local_inventory
     filtered_items = [i for i in current_items if i["zip"] == target_zip]
     
@@ -50,10 +63,16 @@ if view_mode == "Find Local Needs":
     else:
         st.write(f"### Active Local Options in {target_zip}:")
         
-        # Render each item tracking card flawlessly
         for item in filtered_items:
             with st.container():
-                col_info, col_action = st.columns([3, 1])
+                col_img, col_info, col_action = st.columns([1, 2, 1])
+                
+                with col_img:
+                    # Render the local image if it exists, otherwise display a placeholder mesh
+                    if item.get("image"):
+                        st.image(item["image"], use_column_width=True)
+                    else:
+                        st.markdown("🖼️\n*(No Image)*")
                 
                 with col_info:
                     st.markdown(f"#### **{item['item']}**")
@@ -61,20 +80,18 @@ if view_mode == "Find Local Needs":
                     st.markdown(f"**Price:** ${item['price']:.2f} | **Available:** {item['qty']}")
                 
                 with col_action:
-                    st.write("") # Spacer for alignment
-                    # Disable button automatically if stock hits zero
+                    st.write("") 
                     if item["qty"] <= 0:
                         st.button("Sold Out", key=f"dead_{item['id']}", disabled=True)
                     else:
                         if st.button(f"Acquire", key=f"buy_{item['id']}"):
-                            # Safely decrement inventory state
                             item["qty"] -= 1
                             st.session_state.retained_capital += item["price"]
-                            st.success(f"Acquired {item['item']}! Capital retained.")
+                            st.success(f"Acquired!")
                             st.rerun()
                 st.markdown("---")
 
-# 6. Controller Logic: Register Local Supply (Seller View)
+# 6. Controller Logic: Register Local Supply (Seller View with Uploader)
 elif view_mode == "Register Local Supply":
     st.subheader("🌾 Broadcast New Production Capacity")
     
@@ -86,13 +103,18 @@ elif view_mode == "Register Local Supply":
         new_price = st.number_input("Resource Value ($ per unit)", min_value=0.01, value=1.00, step=0.50)
         new_zip = st.text_input("Local ZIP Coordinates", value="78201", max_chars=5).strip()
         
+        # Native camera/file integration for mobile devices
+        uploaded_img = st.file_uploader("Upload or Snap a Photo of Your Item", type=["jpg", "jpeg", "png"])
+        
         submit_btn = st.form_submit_button("Broadcast to Grid")
         
         if submit_btn:
             if not new_seller or not new_item or not new_zip:
                 st.error("All structural data fields must be populated to authorize registration.")
             else:
-                # Append new dictionary entry with unique incremental ID
+                # Convert the image to text string before adding it to memory
+                base64_image = process_uploaded_image(uploaded_img)
+                
                 next_id = len(st.session_state.local_inventory)
                 st.session_state.local_inventory.append({
                     "id": next_id,
@@ -101,9 +123,10 @@ elif view_mode == "Register Local Supply":
                     "category": new_cat,
                     "qty": int(new_qty),
                     "price": float(new_price),
-                    "zip": new_zip
+                    "zip": new_zip,
+                    "image": base64_image
                 })
-                st.success(f"Successfully broadcasted {new_item} to the local routing index.")
+                st.success(f"Successfully broadcasted {new_item} with visual verification.")
                 st.rerun()
 
 # 7. Metrics Sidebar Tracker
@@ -111,4 +134,4 @@ st.sidebar.subheader("📉 Network Resilience Metrics")
 st.sidebar.metric(
     label="Capital Diverted from Corporate Hubs", 
     value=f"${st.session_state.retained_capital:.2f}"
-)
+        )
