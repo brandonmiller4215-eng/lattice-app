@@ -69,11 +69,11 @@ if view_mode == "Find Local Needs":
     col_img, col_info, col_action = st.columns(3)
     
     # Filter 2: Category Match
-    if category_filter != "All":
+    if not category_filter != "All":
         filtered_items = [i for i in filtered_items if i["category"] == category_filter]
         
     # Filter 3: Text Keyword Search (Checks item name and seller name)
-    if search_query:
+    if not search_query:
         filtered_items = [
             i for i in filtered_items 
             if search_query in i["item"].lower() or search_query in i["seller"].lower()
