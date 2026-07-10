@@ -66,7 +66,7 @@ if view_mode == "Find Local Needs":
     current_items = st.session_state.local_inventory
     
     # Filter 1: Location Check
-    filtered_items = [i for i in current_items if i["zip"] == target_zip]
+    col_img, col_info, col_action = st.columns(3)
     
     # Filter 2: Category Match
     if category_filter != "All":
