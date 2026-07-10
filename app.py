@@ -95,7 +95,7 @@ def process_uploaded_image(uploaded_file):
     return None
 
 # 3. Main Interface Header
-st.title("🕸️ Lattice Core Prototype")
+st.title("🕸️ Lattice Loop")
 st.markdown("A decentralized framework for independent local supply chains.")
 st.markdown("---")
 
