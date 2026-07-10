@@ -55,13 +55,13 @@ if view_mode == "Find Local Needs":
     # 📍 Location Constraint
     target_zip = st.text_input("Enter Target ZIP Code Location", value="78201", max_chars=5).strip()
     
-    # NEW FEATURE: Search Filter Row (Draws text bar and drop-down side-by-side)
-    col_search, col_cat = st.columns([2, 1])
+    # Search Filter Row
+    col_search, col_cat = st.columns(2)
     with col_search:
         search_query = st.text_input("Search items by keyword...", value="").strip().lower()
     with col_cat:
         category_filter = st.selectbox("Category Filter", ["All", "Food", "Goods", "Tools", "Services"])
-        
+    
     # 🧮 Execute Multi-Layer Filtering Algorithm
     current_items = st.session_state.local_inventory
     
@@ -77,7 +77,7 @@ if view_mode == "Find Local Needs":
         filtered_items = [
             i for i in filtered_items 
             if search_query in i["item"].lower() or search_query in i["seller"].lower()
-        ]       
+        ]
     
     # Display Results
     if not filtered_items:
@@ -87,7 +87,7 @@ if view_mode == "Find Local Needs":
         
         for item in filtered_items:
             with st.container():
-                col_img, col_info, col_action = st.columns()
+                col_img, col_info, col_action = st.columns(3)
                 
                 with col_img:
                     if item.get("image"):
@@ -136,7 +136,7 @@ elif view_mode == "Register Local Supply":
                 
                 next_id = len(st.session_state.local_inventory)
                 st.session_state.local_inventory.append({
-                    "id": next_id,
+                    "id": net_id,
                     "seller": new_seller,
                     "item": new_item,
                     "category": new_cat,
@@ -153,4 +153,4 @@ st.sidebar.subheader("📉 Network Resilience Metrics")
 st.sidebar.metric(
     label="Capital Diverted from Corporate Hubs", 
     value=f"${st.session_state.retained_capital:.2f}"
-)
+                    )
