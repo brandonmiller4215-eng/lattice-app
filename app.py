@@ -160,7 +160,7 @@ elif view_mode == "Register Local Supply":
                 })
                 st.success(f"Successfully broadcasted {new_item}.")
                 st.rerun()
-
+                
 # 7. Controller Logic: Secure Community Wall
 elif view_mode == "Secure Community Wall":
     st.subheader("💬 Untraceable Neighborhood Broadcast Wall")
@@ -172,33 +172,30 @@ elif view_mode == "Secure Community Wall":
         with col_alias:
             msg_alias = st.text_input("Temporary Alias", value="AnonNode", max_chars=15).strip()
         with col_txt:
-            msg_text = st.text_input("Type Secure Message Payload...", max_chars=140).strip()
-        
-        broadcast_msg_btn = st.form_submit_button("Transmit Packet")
-        if broadcast_msg_btn:
-            if not msg_text or not user_zip:
-                st.error("Cannot broadcast an empty message packet.")
+            msg_text = st.text_input("Broadcast Message", placeholder="What's happening in your local loop?").strip()
+            
+        submit_msg = st.form_submit_button("Broadcast Secure Transmission")
+        if submit_msg:
+            if not msg_text:
+                st.error("Cannot broadcast an empty message transmission.")
             else:
-                current_time = datetime.datetime.now().strftime("%H:%M")
-                new_packet = {
-                    "zip": user_zip, "alias": msg_alias if msg_alias else "AnonNode", "text": msg_text, "time": current_time
-                }
-                st.session_state.secure_message_wall.insert(0, new_packet)
-                if len(st.session_state.secure_message_wall) > 15:
-                    st.session_state.secure_message_wall = st.session_state.secure_message_wall[:15]
-                st.success("Packet transmitted to local loop coordinates.")
+                now_str = datetime.datetime.now().strftime("%H:%M")
+                st.session_state.secure_message_wall.insert(0, {
+                    "zip": user_zip,
+                    "alias": msg_alias if msg_alias else "AnonNode",
+                    "text": msg_text,
+                    "time": now_str
+                })
+                st.success("Transmission added to local RAM grid!")
                 st.rerun()
-                
-    st.write("---")
-    st.write(f"### Live Signals Decoded Near ZIP {user_zip}:")
-    wall_packets = st.session_state.secure_message_wall
-    visible_packets = 0
-    for pkt in wall_packets:
-        dist = calculate_distance(user_zip, pkt["zip"])
-        if dist != "Out of Grid" and dist <= 10.0:
-            visible_packets += 1
+
+    st.markdown("### 🛰️ Live Grid Transmissions")
+    grid_messages = [m for m in st.session_state.secure_message_wall if m["zip"] == user_zip]
+    
+    if not grid_messages:
+        st.info(f"No active local transmissions found on the wall for ZIP {user_zip}.")
+    else:
+        for msg in grid_messages:
             with st.chat_message("user", avatar="🕸️"):
-                st.markdown(f"**{pkt['alias']}** <span style='color:gray; font-size:11px;'>({pkt['time']} | {dist if dist == 0.0 else f'{dist} mi'} away)</span>", unsafe_allow_html=True)
-                st.markdown(f"{pkt['text']}")
-    if visible_packets == 0:
-        st.info("No active communication frequencies detected inside this neighborhood grid corridor.")
+                st.markdown(f"**{msg['alias']}** `[{msg['time']}]` (ZIP: {msg['zip']})")
+                st.write(msg["text"])
