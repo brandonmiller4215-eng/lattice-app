@@ -98,7 +98,7 @@ elif view_mode == "Register Local Supply":
     with st.form("inventory_form", clear_on_submit=True):
         new_seller = st.text_input("Seller / Collective Name").strip()
         new_item = st.text_input("Resource or Skill Provided").strip()
-        new_cat = st.selectbox("Classification", ["Food", "Goods", "Tools", "Services"])
+        uploaded_img = st.file_uploader("Upload or Snap a Photo of Your Item", type=["jpg", "jpeg", "png"],
         new_qty = st.number_input("Available Stock Quantity", min_value=1, value=5, step=1)
         new_price = st.number_input("Resource Value ($ per unit)", min_value=0.01, value=1.00, step=0.50)
         new_zip = st.text_input("Local ZIP Coordinates", value="78201", max_chars=5).strip()
