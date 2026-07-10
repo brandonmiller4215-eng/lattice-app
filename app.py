@@ -91,8 +91,9 @@ chosen_aid_group = st.sidebar.selectbox(
 if st.sidebar.button("Simulate New $5.00 Monthly Subscription"):
     st.session_state.subscriber_count += 1
     
-    platform_cut = 5.00 * 0.25   
-    charity_cut = 5.00 * 0.75    
+    # Updated 50/50 financial equation ($2.50 to your platform, $2.50 to community mutual aid)
+    platform_cut = 5.00 * 0.50   
+    charity_cut = 5.00 * 0.50    
     
     st.session_state.retained_capital += platform_cut
     st.session_state.charity_funds[chosen_aid_group] += charity_cut
@@ -102,11 +103,12 @@ if st.sidebar.button("Simulate New $5.00 Monthly Subscription"):
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 📊 Network Treasury Dashboard")
 st.sidebar.metric("Active Subscribed Nodes", f"{st.session_state.subscriber_count} Members")
-st.sidebar.metric("Your Retained Royalties (25%)", f"${st.session_state.retained_capital:.2f}")
+st.sidebar.metric("Your Retained Royalties (50%)", f"${st.session_state.retained_capital:.2f}")
 
-st.sidebar.markdown("#### 🛰️ Direct Grassroots Distributions (75%)")
+st.sidebar.markdown("#### 🛰️ Direct Grassroots Distributions (50%)")
 for group, total_amount in st.session_state.charity_funds.items():
     st.sidebar.write(f" * **{group}:** `${total_amount:.2f}`")
+
 
 # 5. Interface Action Selector
 view_mode = st.radio(
