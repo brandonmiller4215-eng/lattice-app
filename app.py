@@ -23,6 +23,23 @@ if "local_inventory" not in st.session_state:
 if "retained_capital" not in st.session_state:
     st.session_state.retained_capital = 0.0
 
+# NEW FEATURE: Spatial Distance Grid (Calculates distance between neighbor nodes without tracking)
+ZIP_PROXIMITY_MATRIX = {
+    "78201": {"78201": 0.0, "78212": 2.1, "78207": 3.5, "78209": 4.8},
+    "78212": {"78201": 2.1, "78212": 0.0, "78207": 2.8, "78209": 3.1},
+    "78207": {"78201": 3.5, "78212": 2.8, "78207": 0.0, "78209": 5.9},
+    "78209": {"78201": 4.8, "78212": 3.1, "78207": 5.9, "78209": 0.0},
+}
+
+def calculate_distance(user_zip, item_zip):
+    """Safely extracts pre-computed distance from the matrix mesh."""
+    if user_zip == item_zip:
+        return 0.0
+    if user_zip in ZIP_PROXIMITY_MATRIX and item_zip in ZIP_PROXIMITY_MATRIX[user_zip]:
+        return ZIP_PROXIMITY_MATRIX[user_zip][item_zip]
+    # Fallback default if nodes belong to different regional grids
+    return "Out of Grid"
+
 # Helper function to compress and convert images to Base64 text strings
 def process_uploaded_image(uploaded_file):
     if uploaded_file is not None:
@@ -48,12 +65,12 @@ view_mode = st.radio(
 
 st.markdown("---")
 
-# 5. Controller Logic: Find Local Needs (Consumer View with Advanced Filtering)
+# 5. Controller Logic: Find Local Needs (Consumer View)
 if view_mode == "Find Local Needs":
     st.subheader("🔍 Local Network Query")
     
-    # 📍 Location Constraint
-    target_zip = st.text_input("Enter Target ZIP Code Location", value="78201", max_chars=5).strip()
+    # 📍 Location Coordinates
+    user_zip = st.text_input("Enter Your Current ZIP Code Location", value="78201", max_chars=5).strip()
     
     # Search Filter Row
     col_search, col_cat = st.columns(2)
@@ -64,10 +81,18 @@ if view_mode == "Find Local Needs":
     
     # 🧮 Execute Multi-Layer Filtering Algorithm
     current_items = st.session_state.local_inventory
+    filtered_items = []
     
-    # Filter 1: Location Check
-    filtered_items = [i for i in current_items if i["zip"] == target_zip]
-    
+    # Process all available nodes globally and attach distance values dynamically
+    for item in current_items:
+        dist = calculate_distance(user_zip, item["zip"])
+        
+        # Filter 1: Max range constraint (hides options too far away from the local loop)
+        if dist != "Out of Grid" and dist <= 10.0:
+            item_copy = item.copy()
+            item_copy["distance"] = dist
+            filtered_items.append(item_copy)
+            
     # Filter 2: Category Match
     if category_filter != "All":
         filtered_items = [i for i in filtered_items if i["category"] == category_filter]
@@ -78,10 +103,13 @@ if view_mode == "Find Local Needs":
             i for i in filtered_items 
             if search_query in i["item"].lower() or search_query in i["seller"].lower()
         ]
+        
+    # Sort items dynamically: closest resources rank highest!
+    filtered_items = sorted(filtered_items, key=lambda x: x["distance"] if isinstance(x["distance"], float) else 999)
     
     # Display Results
     if not filtered_items:
-        st.info("No matching local supply nodes found for your active filters.")
+        st.info("No matching local supply nodes found within range of your location configuration.")
     else:
         st.write(f"### Matching Options ({len(filtered_items)} found):")
         
@@ -97,16 +125,26 @@ if view_mode == "Find Local Needs":
                 
                 with col_info:
                     st.markdown(f"#### **{item['item']}**")
-                    st.markdown(f"*By: {item['seller']}* | Category: `{item['category']}`")
-                    st.markdown(f"**Price:** ${item['price']:.2f} | **Available:** {item['qty']}")
+                    st.markdown(f"*By: {item['seller']}*")
+                    
+                    # Visually highlight distance tags so users see proximity immediately
+                    if item["distance"] == 0.0:
+                        st.markdown("📍 **Distance:** `Right in your immediate ZIP!`")
+                    else:
+                        st.markdown(f"📍 **Distance:** `{item['distance']} miles away`")
+                        
+                    st.markdown(f"Category: `{item['category']}` | **Price:** ${item['price']:.2f}")
                 
                 with col_action:
-                    st.write("") 
+                    st.write(f"Available: {item['qty']}") 
                     if item["qty"] <= 0:
                         st.button("Sold Out", key=f"dead_{item['id']}", disabled=True)
                     else:
                         if st.button(f"Acquire", key=f"buy_{item['id']}"):
-                            item["qty"] -= 1
+                            # Update master copy state
+                            for original_item in st.session_state.local_inventory:
+                                if original_item["id"] == item["id"]:
+                                    original_item["qty"] -= 1
                             st.session_state.retained_capital += item["price"]
                             st.success(f"Acquired!")
                             st.rerun()
@@ -136,7 +174,7 @@ elif view_mode == "Register Local Supply":
                 
                 next_id = len(st.session_state.local_inventory)
                 st.session_state.local_inventory.append({
-                    "id": net_id,
+                    "id": next_id,
                     "seller": new_seller,
                     "item": new_item,
                     "category": new_cat,
@@ -153,4 +191,4 @@ st.sidebar.subheader("📉 Network Resilience Metrics")
 st.sidebar.metric(
     label="Capital Diverted from Corporate Hubs", 
     value=f"${st.session_state.retained_capital:.2f}"
-                    )
+        )
