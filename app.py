@@ -22,7 +22,17 @@ if "local_inventory" not in st.session_state:
     ]
 
 if "retained_capital" not in st.session_state:
-    st.session_state.retained_capital = 0.0
+    st.session_state.retained_capital = 0.0      
+
+if "charity_funds" not in st.session_state:
+    st.session_state.charity_funds = {            
+        "San Antonio Collective Care": 0.0,
+        "Mootual Aid SATX": 0.0,
+        "Community Fridge SATX": 0.0
+    }
+
+if "subscriber_count" not in st.session_state:
+    st.session_state.subscriber_count = 0        
 
 if "secure_message_wall" not in st.session_state:
     st.session_state.secure_message_wall = [
@@ -56,19 +66,49 @@ def process_uploaded_image(uploaded_file):
     return None
 
 # 3. Main Interface Header
+st.title("🕸️ Lattice Core Prototype")
+st.markdown("A decentralized framework for independent local supply chains.")
+st.markdown("---")
+
+# 4. Global Sidebar Utilities & Dashboards
 st.sidebar.markdown("### 🧮 Local Valuation Hub")
 with st.sidebar.expander("Currency Calculator", expanded=False):
     usd_input = st.number_input("Enter Amount (USD $)", min_value=0.0, value=10.0, step=1.0)
-    
     time_credits = usd_input / 20.0  
     lattice_tokens = usd_input / 1.50 
     
     st.markdown(f"**⏱️ Time Bank Value:** `{time_credits:.2f} Hours`")
     st.markdown(f"**🪙 Lattice Credits:** `{lattice_tokens:.1f} LTC`")
-    
-    st.metric("Total Local Capital Retained", f"${st.session_state.retained_capital:.2f}")
 
-# 4. Interface Modes
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 💳 System Royalty & Membership Hub")
+
+chosen_aid_group = st.sidebar.selectbox(
+    "Direct Subscription Split To:", 
+    ["San Antonio Collective Care", "Mootual Aid SATX", "Community Fridge SATX"]
+)
+
+if st.sidebar.button("Simulate New $5.00 Monthly Subscription"):
+    st.session_state.subscriber_count += 1
+    
+    platform_cut = 5.00 * 0.25   
+    charity_cut = 5.00 * 0.75    
+    
+    st.session_state.retained_capital += platform_cut
+    st.session_state.charity_funds[chosen_aid_group] += charity_cut
+    st.sidebar.success("Subscription processed! Proceeds distributed.")
+    st.rerun()
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📊 Network Treasury Dashboard")
+st.sidebar.metric("Active Subscribed Nodes", f"{st.session_state.subscriber_count} Members")
+st.sidebar.metric("Your Retained Royalties (25%)", f"${st.session_state.retained_capital:.2f}")
+
+st.sidebar.markdown("#### 🛰️ Direct Grassroots Distributions (75%)")
+for group, total_amount in st.session_state.charity_funds.items():
+    st.sidebar.write(f" * **{group}:** `${total_amount:.2f}`")
+
+# 5. Interface Action Selector
 view_mode = st.radio(
     "Select System Action:", 
     ["Find Local Needs", "Register Local Supply", "Secure Community Wall"], 
@@ -77,7 +117,7 @@ view_mode = st.radio(
 
 st.markdown("---")
 
-# 5. Controller Logic: Find Local Needs
+# 6. Controller Logic: Find Local Needs
 if view_mode == "Find Local Needs":
     st.subheader("🔍 Local Network Query")
     user_zip = st.text_input("Enter Your Current ZIP Code Location", value="78201", max_chars=5).strip()
@@ -138,12 +178,11 @@ if view_mode == "Find Local Needs":
                             for original_item in st.session_state.local_inventory:
                                 if original_item["id"] == item["id"]:
                                     original_item["qty"] -= 1
-                            st.session_state.retained_capital += item["price"]
-                            st.success(f"Acquired!")
+                            st.success(f"Acquired! 100% of revenue routed directly to {item['seller']}.")
                             st.rerun()
                 st.markdown("---")
 
-# 6. Controller Logic: Register Local Supply
+# 7. Controller Logic: Register Local Supply
 elif view_mode == "Register Local Supply":
     st.subheader("🌾 Broadcast New Production Capacity")
     with st.form("inventory_form", clear_on_submit=True):
@@ -169,41 +208,3 @@ elif view_mode == "Register Local Supply":
                 st.success(f"Successfully broadcasted {new_item}.")
                 st.rerun()
                 
-# 7. Controller Logic: Secure Community Wall
-elif view_mode == "Secure Community Wall":
-    st.subheader("💬 Untraceable Neighborhood Broadcast Wall")
-    st.markdown("🔒 *Messages exist solely in temporary server RAM. No storage disks or user profile data logged.*")
-    user_zip = st.text_input("Enter Your Location ZIP to Filter Local Transmissions", value="78201", max_chars=5).strip()
-    
-    with st.form("message_form", clear_on_submit=True):
-        col_alias, col_txt = st.columns()
-        with col_alias:
-            msg_alias = st.text_input("Temporary Alias", value="AnonNode", max_chars=15).strip()
-        with col_txt:
-            msg_text = st.text_input("Broadcast Message", placeholder="What's happening in your local loop?").strip()
-            
-        submit_msg = st.form_submit_button("Broadcast Secure Transmission")
-        if submit_msg:
-            if not msg_text:
-                st.error("Cannot broadcast an empty message transmission.")
-            else:
-                now_str = datetime.datetime.now().strftime("%H:%M")
-                st.session_state.secure_message_wall.insert(0, {
-                    "zip": user_zip,
-                    "alias": msg_alias if msg_alias else "AnonNode",
-                    "text": msg_text,
-                    "time": now_str
-                })
-                st.success("Transmission added to local RAM grid!")
-                st.rerun()
-
-    st.markdown("### 🛰️ Live Grid Transmissions")
-    grid_messages = [m for m in st.session_state.secure_message_wall if m["zip"] == user_zip]
-    
-    if not grid_messages:
-        st.info(f"No active local transmissions found on the wall for ZIP {user_zip}.")
-    else:
-        for msg in grid_messages:
-            with st.chat_message("user", avatar="🕸️"):
-                st.markdown(f"**{msg['alias']}** `[{msg['time']}]` (ZIP: {msg['zip']})")
-                st.write(msg["text"])
