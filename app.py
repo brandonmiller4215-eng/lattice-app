@@ -12,14 +12,46 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. State & Memory Hub Initialization
+import json
+import os
+
+# 2. State & Memory Hub Initialization (JSON Flat-File Database Version)
+DB_INVENTORY_PATH = "inventory_db.json"
+DB_MESSAGES_PATH = "messages_db.json"
+
+# Helper functions to handle permanent text-file writes and reads
+def load_json_db(file_path, default_data):
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, "r") as f:
+                return json.load(f)
+        except:
+            return default_data
+    return default_data
+
+def save_json_db(file_path, data):
+    with open(file_path, "w") as f:
+        json.dump(data, f, indent=4)
+
+# Define baseline mock datasets to seed empty networks automatically
+DEFAULT_INVENTORY = [
+    {"id": 0, "seller": "Oak Street Collective", "item": "Organic Tomatoes", "category": "Food", "qty": 15, "price": 3.50, "zip": "78201", "image": None},
+    {"id": 1, "seller": "Elena's Textiles", "item": "Handmade Wool Blanket", "category": "Goods", "qty": 3, "price": 65.00, "zip": "78201", "image": None},
+    {"id": 2, "seller": "Community Tool Library", "item": "Rototiller Rental", "category": "Tools", "qty": 1, "price": 10.00, "zip": "78212", "image": None},
+    {"id": 3, "seller": "Mendoza Farm", "item": "Free-Range Eggs (Dozen)", "category": "Food", "qty": 12, "price": 5.00, "zip": "78212", "image": None},
+]
+
+DEFAULT_MESSAGES = [
+    {"zip": "78201", "alias": "AnonNode_1", "text": "Leaving seeds at the community box on Main St at noon.", "time": "10:15"},
+    {"zip": "78212", "alias": "ToolShare_Alpha", "text": "Rototiller is cleaned, sanitized, and ready for pickup.", "time": "09:30"}
+]
+
+# Pull data directly from disk files into memory stream
 if "local_inventory" not in st.session_state:
-    st.session_state.local_inventory = [
-        {"id": 0, "seller": "Oak Street Collective", "item": "Organic Tomatoes", "category": "Food", "qty": 15, "price": 3.50, "zip": "78201", "image": None},
-        {"id": 1, "seller": "Elena's Textiles", "item": "Handmade Wool Blanket", "category": "Goods", "qty": 3, "price": 65.00, "zip": "78201", "image": None},
-        {"id": 2, "seller": "Community Tool Library", "item": "Rototiller Rental", "category": "Tools", "qty": 1, "price": 10.00, "zip": "78212", "image": None},
-        {"id": 3, "seller": "Mendoza Farm", "item": "Free-Range Eggs (Dozen)", "category": "Food", "qty": 12, "price": 5.00, "zip": "78212", "image": None},
-    ]
+    st.session_state.local_inventory = load_json_db(DB_INVENTORY_PATH, DEFAULT_INVENTORY)
+
+if "secure_message_wall" not in st.session_state:
+    st.session_state.secure_message_wall = load_json_db(DB_MESSAGES_PATH, DEFAULT_MESSAGES)
 
 if "retained_capital" not in st.session_state:
     st.session_state.retained_capital = 0.0      
@@ -34,13 +66,7 @@ if "charity_funds" not in st.session_state:
 if "subscriber_count" not in st.session_state:
     st.session_state.subscriber_count = 0        
 
-if "secure_message_wall" not in st.session_state:
-    st.session_state.secure_message_wall = [
-        {"zip": "78201", "alias": "AnonNode_1", "text": "Leaving seeds at the community box on Main St at noon.", "time": "10:15"},
-        {"zip": "78212", "alias": "ToolShare_Alpha", "text": "Rototiller is cleaned, sanitized, and ready for pickup.", "time": "09:30"}
-    ]
-
-# 💡 CONFIGURATION FLAG: Change this to False when you are ready to charge real money later!
+# CONFIGURATION FLAG: Toggle to False to initiate payment simulation systems
 FREE_BETA_MODE = True
 
 # Spatial Distance Matrix
@@ -209,6 +235,7 @@ if view_mode == "Find Local Needs":
                                 if original_item["id"] == item["id"]:
                                     original_item["qty"] -= 1
                             st.success(f"Acquired! 100% of revenue routed directly to {item['seller']}.")
+                            save_json_db(DB_INVENTORY_PATH, st.session_state.local_inventory)
                             st.rerun()
                 st.markdown("---")
 
@@ -236,6 +263,7 @@ elif view_mode == "Register Local Supply":
                     "qty": int(new_qty), "price": float(new_price), "zip": new_zip, "image": base64_image
                 })
                 st.success(f"Successfully broadcasted {new_item}.")
+                save_json_db(DB_INVENTORY_PATH, st.session_state.local_inventory)
                 st.rerun()
                 
 # 8. Controller Logic: Secure Community Wall
@@ -264,6 +292,7 @@ elif view_mode == "Secure Community Wall":
                     "time": now_str
                 })
                 st.success("Transmission added to local RAM grid!")
+                save_json_db(DB_MESSAGES_PATH, st.session_state.secure_message_wall)
                 st.rerun()
 
     st.markdown("### 🛰️ Live Grid Transmissions")
