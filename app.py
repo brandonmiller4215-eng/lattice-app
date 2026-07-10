@@ -208,3 +208,41 @@ elif view_mode == "Register Local Supply":
                 st.success(f"Successfully broadcasted {new_item}.")
                 st.rerun()
                 
+# 8. Controller Logic: Secure Community Wall
+elif view_mode == "Secure Community Wall":
+    st.subheader("💬 Untraceable Neighborhood Broadcast Wall")
+    st.markdown("🔒 *Messages exist solely in temporary server RAM. No storage disks or user profile data logged.*")
+    user_zip = st.text_input("Enter Your Location ZIP to Filter Local Transmissions", value="78201", max_chars=5).strip()
+    
+    with st.form("message_form", clear_on_submit=True):
+        col_alias, col_txt = st.columns()
+        with col_alias:
+            msg_alias = st.text_input("Temporary Alias", value="AnonNode", max_chars=15).strip()
+        with col_txt:
+            msg_text = st.text_input("Broadcast Message", placeholder="What's happening in your local loop?").strip()
+            
+        submit_msg = st.form_submit_button("Broadcast Secure Transmission")
+        if submit_msg:
+            if not msg_text:
+                st.error("Cannot broadcast an empty message transmission.")
+            else:
+                now_str = datetime.datetime.now().strftime("%H:%M")
+                st.session_state.secure_message_wall.insert(0, {
+                    "zip": user_zip,
+                    "alias": msg_alias if msg_alias else "AnonNode",
+                    "text": msg_text,
+                    "time": now_str
+                })
+                st.success("Transmission added to local RAM grid!")
+                st.rerun()
+
+    st.markdown("### 🛰️ Live Grid Transmissions")
+    grid_messages = [m for m in st.session_state.secure_message_wall if m["zip"] == user_zip]
+    
+    if not grid_messages:
+        st.info(f"No active local transmissions found on the wall for ZIP {user_zip}.")
+    else:
+        for msg in grid_messages:
+            with st.chat_message("user", avatar="🕸️"):
+                st.markdown(f"**{msg['alias']}** `[{msg['time']}]` (ZIP: {msg['zip']})")
+                st.write(msg["text"])
