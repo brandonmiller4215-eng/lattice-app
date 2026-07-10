@@ -56,9 +56,17 @@ def process_uploaded_image(uploaded_file):
     return None
 
 # 3. Main Interface Header
-st.title("🕸️ Lattice Core Prototype")
-st.markdown("A decentralized framework for independent local supply chains.")
-st.markdown("---")
+st.sidebar.markdown("### 🧮 Local Valuation Hub")
+with st.sidebar.expander("Currency Calculator", expanded=False):
+    usd_input = st.number_input("Enter Amount (USD $)", min_value=0.0, value=10.0, step=1.0)
+    
+    time_credits = usd_input / 20.0  
+    lattice_tokens = usd_input / 1.50 
+    
+    st.markdown(f"**⏱️ Time Bank Value:** `{time_credits:.2f} Hours`")
+    st.markdown(f"**🪙 Lattice Credits:** `{lattice_tokens:.1f} LTC`")
+    
+    st.metric("Total Local Capital Retained", f"${st.session_state.retained_capital:.2f}")
 
 # 4. Interface Modes
 view_mode = st.radio(
