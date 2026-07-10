@@ -40,6 +40,9 @@ if "secure_message_wall" not in st.session_state:
         {"zip": "78212", "alias": "ToolShare_Alpha", "text": "Rototiller is cleaned, sanitized, and ready for pickup.", "time": "09:30"}
     ]
 
+# 💡 CONFIGURATION FLAG: Change this to False when you are ready to charge real money later!
+FREE_BETA_MODE = True
+
 # Spatial Distance Matrix
 ZIP_PROXIMITY_MATRIX = {
     "78201": {"78201": 0.0, "78212": 2.1, "78207": 3.5, "78209": 4.8},
@@ -83,32 +86,43 @@ with st.sidebar.expander("Currency Calculator", expanded=False):
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 💳 System Royalty & Membership Hub")
 
+# Establish subscription values based on operational mode
+sub_cost = 0.00 if FREE_BETA_MODE else 5.00
+platform_split = 0.00 if FREE_BETA_MODE else (sub_cost * 0.50)
+charity_split = 0.00 if FREE_BETA_MODE else (sub_cost * 0.50)
+
+if FREE_BETA_MODE:
+    st.sidebar.info("🚀 **Alpha Beta Pass Active:** Platform access is completely free for early network nodes!")
+
 chosen_aid_group = st.sidebar.selectbox(
-    "Direct Subscription Split To:", 
+    "Designated Mutual Aid Anchor:", 
     ["San Antonio Collective Care", "Mootual Aid SATX", "Community Fridge SATX"]
 )
 
-if st.sidebar.button("Simulate New $5.00 Monthly Subscription"):
+button_label = f"Claim Free Beta Membership Pass" if FREE_BETA_MODE else f"Subscribe (${sub_cost:.2f}/mo)"
+
+if st.sidebar.button(button_label):
     st.session_state.subscriber_count += 1
     
-    # Updated 50/50 financial equation ($2.50 to your platform, $2.50 to community mutual aid)
-    platform_cut = 5.00 * 0.50   
-    charity_cut = 5.00 * 0.50    
+    # Process the financial allocations based on mode
+    st.session_state.retained_capital += platform_split
+    st.session_state.charity_funds[chosen_aid_group] += charity_split
     
-    st.session_state.retained_capital += platform_cut
-    st.session_state.charity_funds[chosen_aid_group] += charity_cut
-    st.sidebar.success("Subscription processed! Proceeds distributed.")
+    success_text = "Free pass activated! Welcome to the local loop." if FREE_BETA_MODE else "Subscription processed! Proceeds distributed."
+    st.sidebar.success(success_text)
     st.rerun()
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 📊 Network Treasury Dashboard")
 st.sidebar.metric("Active Subscribed Nodes", f"{st.session_state.subscriber_count} Members")
-st.sidebar.metric("Your Retained Royalties (50%)", f"${st.session_state.retained_capital:.2f}")
 
-st.sidebar.markdown("#### 🛰️ Direct Grassroots Distributions (50%)")
-for group, total_amount in st.session_state.charity_funds.items():
-    st.sidebar.write(f" * **{group}:** `${total_amount:.2f}`")
-
+if FREE_BETA_MODE:
+    st.sidebar.caption("🔒 *Financial tracking metrics will activate once your pilot phase is complete.*")
+else:
+    st.sidebar.metric("Your Retained Royalties (50%)", f"${st.session_state.retained_capital:.2f}")
+    st.sidebar.markdown("#### 🛰️ Direct Grassroots Distributions (50%)")
+    for group, total_amount in st.session_state.charity_funds.items():
+        st.sidebar.write(f" * **{group}:** `${total_amount:.2f}`")
 
 # 5. Interface Action Selector
 view_mode = st.radio(
