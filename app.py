@@ -17,14 +17,13 @@ if "local_inventory" not in st.session_state:
     st.session_state.local_inventory = [
         {"id": 0, "seller": "Oak Street Collective", "item": "Organic Tomatoes", "category": "Food", "qty": 15, "price": 3.50, "zip": "78201", "image": None},
         {"id": 1, "seller": "Elena's Textiles", "item": "Handmade Wool Blanket", "category": "Goods", "qty": 3, "price": 65.00, "zip": "78201", "image": None},
-        {"id": 2, "seller": "Community Tool Library", "item": "Rototiller Rental", "category": "Tools", "qty": 1, "price": 10.00, "zip": "78212", "image": None},
+        {"id": 2, "community Tool Library", "item": "Rototiller Rental", "category": "Tools", "qty": 1, "price": 10.00, "zip": "78212", "image": None},
         {"id": 3, "seller": "Mendoza Farm", "item": "Free-Range Eggs (Dozen)", "category": "Food", "qty": 12, "price": 5.00, "zip": "78212", "image": None},
     ]
 
 if "retained_capital" not in st.session_state:
     st.session_state.retained_capital = 0.0
 
-# NEW FEATURE: Volatile In-Memory Message Mesh (Stored in RAM, never writes to disk)
 if "secure_message_wall" not in st.session_state:
     st.session_state.secure_message_wall = [
         {"zip": "78201", "alias": "AnonNode_1", "text": "Leaving seeds at the community box on Main St at noon.", "time": "10:15"},
@@ -162,50 +161,44 @@ elif view_mode == "Register Local Supply":
                 st.success(f"Successfully broadcasted {new_item}.")
                 st.rerun()
 
-# 7. NEW CONTROLLER LOGIC: Secure Community Wall (Untraceable Routing Mesh)
+# 7. Controller Logic: Secure Community Wall
 elif view_mode == "Secure Community Wall":
     st.subheader("💬 Untraceable Neighborhood Broadcast Wall")
     st.markdown("🔒 *Messages exist solely in temporary server RAM. No storage disks or user profile data logged.*")
-    
     user_zip = st.text_input("Enter Your Location ZIP to Filter Local Transmissions", value="78201", max_chars=5).strip()
     
-    # Message Dispatch Form
     with st.form("message_form", clear_on_submit=True):
-        col_alias, col_txt = st.columns([1, 3])
+        col_alias, col_txt = st.columns()
         with col_alias:
             msg_alias = st.text_input("Temporary Alias", value="AnonNode", max_chars=15).strip()
         with col_txt:
-            msg_text = st.text_input("Type Secure Message Payload (e.g., meetup coordinates, drop-offs)...", max_chars=140).strip()
+            msg_text = st.text_input("Type Secure Message Payload...", max_chars=140).strip()
         
         broadcast_msg_btn = st.form_submit_button("Transmit Packet")
-        
         if broadcast_msg_btn:
             if not msg_text or not user_zip:
                 st.error("Cannot broadcast an empty message packet.")
             else:
                 current_time = datetime.datetime.now().strftime("%H:%M")
                 new_packet = {
-                    "zip": user_zip,
-                    "alias": msg_alias if msg_alias else "AnonNode",
-                    "text": msg_text,
-                    "time": current_time
+                    "zip": user_zip, "alias": msg_alias if msg_alias else "AnonNode", "text": msg_text, "time": current_time
                 }
-                # Inject new packet directly into the front of the RAM queue
                 st.session_state.secure_message_wall.insert(0, new_packet)
-                
-                # AUTOMATIC ROLLING SCRUBBER: Retain only the last 15 local packets to purge old trails
                 if len(st.session_state.secure_message_wall) > 15:
                     st.session_state.secure_message_wall = st.session_state.secure_message_wall[:15]
-                    
                 st.success("Packet transmitted to local loop coordinates.")
                 st.rerun()
                 
-    # Render Relevant Location Packets
     st.write("---")
     st.write(f"### Live Signals Decoded Near ZIP {user_zip}:")
-    
     wall_packets = st.session_state.secure_message_wall
     visible_packets = 0
-    
     for pkt in wall_packets:
         dist = calculate_distance(user_zip, pkt["zip"])
+        if dist != "Out of Grid" and dist <= 10.0:
+            visible_packets += 1
+            with st.chat_message("user", avatar="🕸️"):
+                st.markdown(f"**{pkt['alias']}** <span style='color:gray; font-size:11px;'>({pkt['time']} | {dist if dist == 0.0 else f'{dist} mi'} away)</span>", unsafe_allow_html=True)
+                st.markdown(f"{pkt['text']}")
+    if visible_packets == 0:
+        st.info("No active communication frequencies detected inside this neighborhood grid corridor.")
