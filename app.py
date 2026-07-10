@@ -70,7 +70,7 @@ if view_mode == "Find Local Needs":
     
     # Filter 2: Category Match
     if not category_filter != "All":
-        filtered_items = [i for i in filtered_items if i["category"] == category_filter]
+    if not filtered_items = [i for i in filtered_items if i["category"] == category_filter]
         
     # Filter 3: Text Keyword Search (Checks item name and seller name)
     if not search_query:
