@@ -61,23 +61,23 @@ if view_mode == "Find Local Needs":
         search_query = st.text_input("Search items by keyword...", value="").strip().lower()
     with col_cat:
         category_filter = st.selectbox("Category Filter", ["All", "Food", "Goods", "Tools", "Services"])
-    
+        
     # 🧮 Execute Multi-Layer Filtering Algorithm
     current_items = st.session_state.local_inventory
     
     # Filter 1: Location Check
-    col_img, col_info, col_action = st.columns(3)
+    filtered_items = [i for i in current_items if i["zip"] == target_zip]
     
     # Filter 2: Category Match
-    if not category_filter != "All":
-    if not filtered_items = [i for i in filtered_items if i["category"] == category_filter]
+    if category_filter != "All":
+        filtered_items = [i for i in filtered_items if i["category"] == category_filter]
         
-    # Filter 3: Text Keyword Search (Checks item name and seller name)
-    if not search_query:
+    # Filter 3: Text Keyword Search
+    if search_query:
         filtered_items = [
             i for i in filtered_items 
             if search_query in i["item"].lower() or search_query in i["seller"].lower()
-        ]
+        ]       
     
     # Display Results
     if not filtered_items:
