@@ -27,7 +27,6 @@ if "retained_capital" not in st.session_state:
 def process_uploaded_image(uploaded_file):
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
-        # Compress image drastically to save memory on cheap mobile servers
         image.thumbnail((300, 300)) 
         buffer = io.BytesIO()
         image.save(buffer, format="JPEG", quality=70)
@@ -49,26 +48,48 @@ view_mode = st.radio(
 
 st.markdown("---")
 
-# 5. Controller Logic: Find Local Needs (Consumer View)
+# 5. Controller Logic: Find Local Needs (Consumer View with Advanced Filtering)
 if view_mode == "Find Local Needs":
     st.subheader("🔍 Local Network Query")
     
+    # 📍 Location Constraint
     target_zip = st.text_input("Enter Target ZIP Code Location", value="78201", max_chars=5).strip()
     
+    # NEW FEATURE: Search Filter Row (Draws text bar and drop-down side-by-side)
+    col_search, col_cat = st.columns([2, 1])
+    with col_search:
+        search_query = st.text_input("Search items by keyword...", value="").strip().lower()
+    with col_cat:
+        category_filter = st.selectbox("Category Filter", ["All", "Food", "Goods", "Tools", "Services"])
+    
+    # 🧮 Execute Multi-Layer Filtering Algorithm
     current_items = st.session_state.local_inventory
+    
+    # Filter 1: Location Check
     filtered_items = [i for i in current_items if i["zip"] == target_zip]
     
+    # Filter 2: Category Match
+    if category_filter != "All":
+        filtered_items = [i for i in filtered_items if i["category"] == category_filter]
+        
+    # Filter 3: Text Keyword Search (Checks item name and seller name)
+    if search_query:
+        filtered_items = [
+            i for i in filtered_items 
+            if search_query in i["item"].lower() or search_query in i["seller"].lower()
+        ]
+    
+    # Display Results
     if not filtered_items:
-        st.info(f"Zero independent seller nodes actively broadcasting in ZIP {target_zip}.")
+        st.info("No matching local supply nodes found for your active filters.")
     else:
-        st.write(f"### Active Local Options in {target_zip}:")
+        st.write(f"### Matching Options ({len(filtered_items)} found):")
         
         for item in filtered_items:
             with st.container():
-                col_img, col_info, col_action = st.columns([1, 2, 1])
+                col_img, col_info, col_action = st.columns()
                 
                 with col_img:
-                    # Render the local image if it exists, otherwise display a placeholder mesh
                     if item.get("image"):
                         st.image(item["image"], use_column_width=True)
                     else:
@@ -91,20 +112,19 @@ if view_mode == "Find Local Needs":
                             st.rerun()
                 st.markdown("---")
 
-# 6. Controller Logic: Register Local Supply (Seller View with Uploader)
+# 6. Controller Logic: Register Local Supply (Seller View)
 elif view_mode == "Register Local Supply":
     st.subheader("🌾 Broadcast New Production Capacity")
     
     with st.form("inventory_form", clear_on_submit=True):
         new_seller = st.text_input("Seller / Collective Name").strip()
         new_item = st.text_input("Resource or Skill Provided").strip()
-        
+        new_cat = st.selectbox("Classification", ["Food", "Goods", "Tools", "Services"])
         new_qty = st.number_input("Available Stock Quantity", min_value=1, value=5, step=1)
         new_price = st.number_input("Resource Value ($ per unit)", min_value=0.01, value=1.00, step=0.50)
         new_zip = st.text_input("Local ZIP Coordinates", value="78201", max_chars=5).strip()
         
-        # Native camera/file integration for mobile devices
-        uploaded_img = st.file_uploader("Upload or Snap a Photo of Your Item", type=["jpg", "jpeg", "png"])
+        uploaded_img = st.file_uploader("Upload or Snap a Photo of Your Item", type=["jpg", "jpeg", "png"], accept_multiple_files=False, help="Max file size: 2MB")
         
         submit_btn = st.form_submit_button("Broadcast to Grid")
         
@@ -112,7 +132,6 @@ elif view_mode == "Register Local Supply":
             if not new_seller or not new_item or not new_zip:
                 st.error("All structural data fields must be populated to authorize registration.")
             else:
-                # Convert the image to text string before adding it to memory
                 base64_image = process_uploaded_image(uploaded_img)
                 
                 next_id = len(st.session_state.local_inventory)
@@ -134,4 +153,4 @@ st.sidebar.subheader("📉 Network Resilience Metrics")
 st.sidebar.metric(
     label="Capital Diverted from Corporate Hubs", 
     value=f"${st.session_state.retained_capital:.2f}"
-        )
+)
